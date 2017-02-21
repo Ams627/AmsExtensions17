@@ -44,6 +44,19 @@
       </Button>
 
 
+      <!-- the OpenStartFile command -->
+      <Button guid="guidAMSExCmdSet" id="cmdidOpenStartFile" priority="0x0100" type="Button">
+        <CommandFlag>AllowParams</CommandFlag>
+        <CommandFlag>CommandWellOnly</CommandFlag>
+        <Strings>
+          <CommandName>cmdidOpenStartFile</CommandName>
+          <CanonicalName>OpenStartFile</CanonicalName>
+          <LocCanonicalName>OpenStartFile</LocCanonicalName>
+          <ButtonText>OpenStartFileX</ButtonText>
+        </Strings>
+      </Button>
+
+
     </Buttons>
   </Commands>
 
@@ -54,6 +67,7 @@
       <IDSymbol name="cmdidOpenConApp" value="0x0101" />
       <IDSymbol name="cmdidOpenCSharpConApp" value="0x0102" />
       <IDSymbol name="cmdidOpenWPFApp" value="0x0103" />
+      <IDSymbol name="cmdidOpenStartFile" value="0x0104" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>

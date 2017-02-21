@@ -29,6 +29,7 @@ namespace AMS.AMSExtensions
             base.Initialize();
 
             // Add our command handlers (commands must exist in the .vsct file)
+
             OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if (null != mcs)
             {
@@ -37,14 +38,18 @@ namespace AMS.AMSExtensions
                 CommandID menuCommandID2 = new CommandID(GuidList.guidAMSExCmdSet, (int)PkgCmdIDList.cmdidOpenConApp);
                 CommandID menuCommandID3 = new CommandID(GuidList.guidAMSExCmdSet, (int)PkgCmdIDList.cmdidOpenCSharpConApp);
                 CommandID menuCommandID4 = new CommandID(GuidList.guidAMSExCmdSet, (int)PkgCmdIDList.cmdidOpenWPFApp);
-                MenuCommand mc1 = new MenuCommand(ProcessCloseCrap, menuCommandID);
-                MenuCommand mc2 = new MenuCommand(ProcessOpenConApp, menuCommandID2);
-                MenuCommand mc3 = new MenuCommand(ProcessOpenCSharpConApp, menuCommandID3);
-                MenuCommand mc4 = new MenuCommand(ProcessOpenWPFApp, menuCommandID4);
+                CommandID menuCommandID5 = new CommandID(GuidList.guidAMSExCmdSet, (int)PkgCmdIDList.cmdidOpenStartFile);
+                OleMenuCommand mc1 = new OleMenuCommand(ProcessCloseCrap, menuCommandID);
+                OleMenuCommand mc2 = new OleMenuCommand(ProcessOpenConApp, menuCommandID2);
+                OleMenuCommand mc3 = new OleMenuCommand(ProcessOpenCSharpConApp, menuCommandID3);
+                OleMenuCommand mc4 = new OleMenuCommand(ProcessOpenWPFApp, menuCommandID4);
+                OleMenuCommand mc5 = new OleMenuCommand(ProcessOpenStartFile, menuCommandID5);
+                mc5.ParametersDescription = "<Filename>";
                 mcs.AddCommand(mc1);
                 mcs.AddCommand(mc2);
                 mcs.AddCommand(mc3);
                 mcs.AddCommand(mc4);
+                mcs.AddCommand(mc5);
             }
         }
 
@@ -71,6 +76,80 @@ namespace AMS.AMSExtensions
             dte.Windows.Item(EnvDTE.Constants.vsWindowKindSolutionExplorer).Close();
             dte.Windows.Item(EnvDTE.Constants.vsWindowKindToolbox).Close();
             dte.Windows.Item("{131369F2-062D-44A2-8671-91FF31EFB4F4}").Close();
+        }
+
+        bool ShowProjectItems(ProjectItems pritems, int i, string searchname)
+        {
+            bool found = false;
+            foreach (ProjectItem item in pritems)
+            {
+                for (short u = 0; u < item.FileCount; u++)
+                {
+                    System.Diagnostics.Debug.WriteLine($"filename:{item.FileNames[u]}");
+                    if (item.FileNames[u].IndexOf(searchname, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        var window = item.Open();
+                        window.Visible = true;
+                        window.Activate();
+                        found = true;
+                        break;
+                    }
+                }
+                ProjectItems subpritems = item.ProjectItems;
+                if (subpritems != null)
+                {
+                    found = ShowProjectItems(subpritems, i + 1, searchname);
+                    if (found)
+                    {
+                        break;
+                    }
+                }
+            }
+            return found;
+        }
+
+        void ProcessOpenStartFile(object sender, EventArgs e)
+        {
+            Debug.WriteLine("OpenStartFile");
+
+            var inValue = ((OleMenuCmdEventArgs)e).InValue as string;
+
+            Debug.WriteLine($"param: {inValue}");
+
+            DTE dte = (DTE)GetService(typeof(EnvDTE.DTE));
+
+            var prjs = dte.Solution.Projects;
+
+            System.Diagnostics.Debug.WriteLine($"Number of projects is {prjs.Count}");
+
+            if (prjs.Count > 0)
+            {
+                var prj = prjs.Item(1);
+                var pritems = prj.ProjectItems;
+                ShowProjectItems(pritems, 0, inValue);
+
+                dte.ActiveDocument.Activate();
+                dte.Find.PatternSyntax = vsFindPatternSyntax.vsFindPatternSyntaxRegExpr;
+                dte.Find.FindWhat = "//startstarttypingtypingherehere";
+                dte.Find.Target = vsFindTarget.vsFindTargetCurrentDocument;
+                dte.Find.MatchCase = false;
+                dte.Find.MatchWholeWord = false;
+                dte.Find.Backwards = false;
+                dte.Find.MatchInHiddenText = false;
+                dte.Find.Action = vsFindAction.vsFindActionFind;
+                if (dte.Find.Execute() == vsFindResult.vsFindResultNotFound)
+                {
+                    throw new System.Exception("vsFindResultNotFound");
+                }
+                dte.Windows.Item("{CF2DDC32-8CAD-11D2-9302-005345000000}").Close();
+                TextSelection ts = (TextSelection)dte.ActiveDocument.Selection;
+                ts.Delete();
+
+                dte.ExecuteCommand("File.SaveAll", string.Empty);
+                dte.ExecuteCommand("Build.BuildSolution");
+                dte.ActiveDocument.Activate();
+            }
+
         }
 
         void ProcessOpenConApp(object sender, EventArgs e)
